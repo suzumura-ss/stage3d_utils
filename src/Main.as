@@ -15,7 +15,10 @@ package
 	import flash.display.Stage3D;
 	import flash.display.StageAlign;
 	import flash.display.StageScaleMode;
+	import flash.display3D.Context3D;
+	import flash.display3D.Context3DBlendFactor;
 	import flash.events.Event;
+	import flash.geom.Matrix3D;
 	import flash.geom.Point;
 	import info.smoche.alternativa.BitmapTextureResourceLoader;
 	import info.smoche.alternativa.LuminanceAndAlphaTextureMaterial;
@@ -23,6 +26,8 @@ package
 	import info.smoche.alternativa.NonMipmapTextureMaterial;
 	import info.smoche.alternativa.RenderTextureResource;
 	import info.smoche.alternativa.TextureCamera3D;
+	import info.smoche.stage3d.AGALGeometry;
+	import info.smoche.stage3d.AGALProgram;
 	import info.smoche.utils.LookAt3D;
 	import info.smoche.utils.Utils;
 	
@@ -42,7 +47,11 @@ package
 		
 		private var _sphere:Mesh;
 		private var _mirror:Mesh;
-		private var _mirrorTexture:RenderTextureResource;
+		private var _mirrorTexture0:RenderTextureResource;
+		private var _mirrorTexture1:RenderTextureResource;
+		
+		private var _agalProgram:AGALProgram;
+		private var _agalGeom:AGALGeometry;
 		
 		[Embed(source = "500x250.jpg")] private const TEXTURE:Class;
 		
@@ -116,7 +125,7 @@ package
 			m.setMaterialToAllSurfaces(new FillMaterial(0x4040c0));
 			_root.addChild(m);
 			
-			/*==== sphere ===*/
+			/*=== sphere ===*/
 			_sphere = m = new GeoSphere();
 			m.x = 700;
 			var bmp:Bitmap = new TEXTURE() as Bitmap;
@@ -140,15 +149,36 @@ package
 			});
 			
 			/*=== panel ===*/
-			_mirror = m = new Plane(400, 200);
+			_mirrorTexture0 = new RenderTextureResource(new Point(512, 512));
+			_mirrorTexture1 = new RenderTextureResource(new Point(512, 512));
+			_mirror = m = new Plane(400, 200, 1, 1, true, false,
+				new NonMipmapTextureMaterial(_mirrorTexture0, 1, _stage3d.context3D),
+				new NonMipmapTextureMaterial(_mirrorTexture1, 1, _stage3d.context3D)
+			);
 			m.rotationZ = Math.PI / 2.0;
 			m.rotationX = Math.PI / 4.0;
 			m.x = 300;
 			m.z = 100;
-			_mirrorTexture = new RenderTextureResource(new Point(512, 512));
-			m.setMaterialToAllSurfaces(new NonMipmapTextureMaterial(_mirrorTexture, 1, _stage3d.context3D));
 			_root.addChild(m);
 			
+			
+			/*=== Local program ===*/
+			_agalProgram = new AGALProgram(_stage3d.context3D, ["m44 op, va0, vc0"], ["#color=0", "mov oc, fc0"]);
+			var verts:Vector.<Number> = Vector.<Number>([
+				// x, y, z
+				-0.9, -0.9, 0,
+				 0.9, -0.9, 0,
+				 0.9,  0.9, 0,
+				-0.9,  0.9, 0,
+			]);
+			var index:Vector.<uint> = Vector.<uint>([
+				0, 1, 2,
+				0, 2, 3,
+			]);
+			_agalGeom = new AGALGeometry(_stage3d.context3D, verts, index, false);
+			
+			
+			/****/
 			uploadResouces();
 			stage.addEventListener(Event.ENTER_FRAME, onEnterFrame);
 			stage.addEventListener(Event.RESIZE, onResize);
@@ -167,7 +197,31 @@ package
 			_sphere.rotationY += 0.02;
 			_controller.update();
 			
-			_camera.renderToTexture(_stage3d, _mirrorTexture.texture(), true);
+			// alternativa3dでテクスチャへ描画: 前方上側のパネルの表面
+			_camera.renderToTexture(_stage3d, _mirrorTexture0.texture(), true);
+			
+			// 生のStage3Dでテクスチャへ描画: 前方上側のパネルの裏面
+			var mat:Matrix3D = new Matrix3D();
+			mat.identity();
+			_agalProgram.context(function(ctx:Context3D):void {
+				_mirrorTexture1.attach();
+				ctx.setBlendFactors(Context3DBlendFactor.SOURCE_ALPHA, Context3DBlendFactor.ONE_MINUS_SOURCE_ALPHA);
+				ctx.clear(1, 1, 1, 1);
+				
+				mat.appendTranslation(0.3, 0, 0);
+				_agalProgram.setMatrix3D("modelViewProjectionMatrix", mat);
+				_agalProgram.setNumbers("color", 1, 0, 0, 0.5);
+				_agalProgram.drawGeometry(_agalGeom);
+				
+				mat.appendTranslation(-0.6, 0, 0);
+				_agalProgram.setMatrix3D("modelViewProjectionMatrix", mat);
+				_agalProgram.setNumbers("color", 0, 1, 0, 0.5);
+				_agalProgram.drawGeometry(_agalGeom);
+				
+				ctx.setRenderToBackBuffer();
+			});
+			
+			// Viewへ描画
 			_camera.render(_stage3d)
 		}
 		
