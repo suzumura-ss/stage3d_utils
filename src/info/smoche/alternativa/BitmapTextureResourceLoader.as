@@ -26,37 +26,20 @@ package info.smoche.alternativa
 		{
 		}
 		
-		/**
-		 * URLから画像をロードしてテクスチャを生成します
-		 * @param	url
-		 * 		"javascript:method_name" の場合、method_name() をコールバックしてその文字列を利用します。
-		 * 		"data:..." の場合、"data:image/png;base64,"の後ろをBase64エンコードされたPNG画像とみなしてロードします。
-		 * 		それ以外の場合はHTTPリクエストで画像を取得します。
-		 * @param	result
-		 * 		画像を取得してテクスチャリソースを生成できたらコールバックします。
-		 * 		useMipmap = true のときは BitmapTextureResource を、
-		 * 		useMipmap = false のときは NonMipmapBitmapTextureResource を引数にとります。
-		 * @param	onerror
-		 * 		エラーが起きた場合にコールバックします。
-		 * 		文字列か Errorクラスを引数にとります。
-		 */
-		static public function loadURL(url:String, result:Function, onerror:Function):void
+		static public function loadBitmapFromURL(url:String, result:Function, onerror:Function):void
 		{
+			var current_flipH:Boolean = flipH;
 			var loader:Loader = new Loader();
 			loader.contentLoaderInfo.addEventListener(Event.COMPLETE, function(e:Event):void {
 				try {
-					var bmp:BitmapData = (e.target.content as Bitmap).bitmapData;
+					var bitmap:BitmapData = (e.target.content as Bitmap).bitmapData;
+					if (current_flipH) {
+						bitmap = NonMipmapBitmapTextureResource.flipImage(bitmap);
+					}
+					result(bitmap);
 				} catch (e:SecurityError) {
 					onerror(e);
 					return;
-				}
-				if (flipH) {
-					bmp = NonMipmapBitmapTextureResource.flipImage(bmp);
-				}
-				if (useMipmap) {
-					result(new BitmapTextureResource(bmp, true));
-				} else {
-					result(new NonMipmapBitmapTextureResource(bmp));
 				}
 			});
 			loader.contentLoaderInfo.addEventListener(IOErrorEvent.IO_ERROR, function(e:IOErrorEvent):void {
@@ -93,6 +76,32 @@ package info.smoche.alternativa
 			} else {
 				onerror("Empty data.");
 			}
+		}
+		
+		/**
+		 * URLから画像をロードしてテクスチャを生成します
+		 * @param	url
+		 * 		"javascript:method_name" の場合、method_name() をコールバックしてその文字列を利用します。
+		 * 		"data:..." の場合、"data:image/png;base64,"の後ろをBase64エンコードされたPNG画像とみなしてロードします。
+		 * 		それ以外の場合はHTTPリクエストで画像を取得します。
+		 * @param	result
+		 * 		画像を取得してテクスチャリソースを生成できたらコールバックします。
+		 * 		useMipmap = true のときは BitmapTextureResource を、
+		 * 		useMipmap = false のときは NonMipmapBitmapTextureResource を引数にとります。
+		 * @param	onerror
+		 * 		エラーが起きた場合にコールバックします。
+		 * 		文字列か Errorクラスを引数にとります。
+		 */
+		static public function loadURL(url:String, result:Function, onerror:Function):void
+		{
+			var current_mipmap:Boolean = useMipmap;
+			loadBitmapFromURL(url, function(bitmap:BitmapData):void {
+				if (current_mipmap) {
+					result(new BitmapTextureResource(bitmap, true));
+				} else {
+					result(new NonMipmapBitmapTextureResource(bitmap));
+				}
+			}, onerror);
 		}
 	}
 }
