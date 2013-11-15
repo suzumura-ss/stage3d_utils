@@ -1,6 +1,5 @@
 package info.smoche.stage3d 
 {
-	import alternativa.protocol.codec.complex.ByteArrayCodec;
 	import com.adobe.utils.AGALMiniAssembler;
 	import flash.display3D.Context3D;
 	import flash.display3D.Context3DProgramType;
@@ -106,7 +105,7 @@ package info.smoche.stage3d
 					if (_uniforms[arg[1]]) {
 						throw "Uniform name is duplicated: " + arg[1];
 					}
-					_uniforms[arg[1]] = new Uniform(programType, arg[1]);
+					_uniforms[arg[1]] = new Uniform(programType, arg[2]);
 					item = "";
 				}
 				return item.replace(/^[ ]+/, "");

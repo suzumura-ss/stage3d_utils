@@ -1,23 +1,10 @@
 package info.smoche.alternativa
 {
 	import alternativa.engine3d.alternativa3d;
-	import alternativa.engine3d.core.Camera3D;
 	import alternativa.engine3d.core.DrawUnit;
-	import alternativa.engine3d.core.Light3D;
-	import alternativa.engine3d.core.Object3D;
-	import alternativa.engine3d.core.Renderer;
-	import alternativa.engine3d.core.VertexAttributes;
-	import alternativa.engine3d.materials.Material;
-	import alternativa.engine3d.materials.ShaderProgram;
-	import alternativa.engine3d.objects.Surface;
-	import alternativa.engine3d.resources.Geometry;
 	import alternativa.engine3d.resources.TextureResource;
-	import com.adobe.utils.AGALMiniAssembler;
 	import flash.display3D.Context3D;
-	import flash.display3D.Context3DBlendFactor;
 	import flash.display3D.Context3DProgramType;
-	import flash.display3D.VertexBuffer3D;
-	import flash.utils.Dictionary;
 	
 	use namespace alternativa3d;
 	/**
